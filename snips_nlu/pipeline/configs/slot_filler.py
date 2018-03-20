@@ -114,6 +114,12 @@ class CRFSlotFillerConfig(ProcessingUnitConfig):
         return cls(**d)
 
 
+class CRFSlotFillerWithProbsConfig(CRFSlotFillerConfig):
+    @classproperty
+    def unit_name(cls):  # pylint:disable=no-self-argument
+        from snips_nlu.slot_filler import CRFSlotFillerWithProbs
+        return CRFSlotFillerWithProbs.unit_name
+
 class SlotFillerDataAugmentationConfig(Config):
     """Specify how to augment data before training the CRF
 

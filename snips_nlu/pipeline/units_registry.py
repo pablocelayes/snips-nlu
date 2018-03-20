@@ -3,7 +3,7 @@ from snips_nlu.intent_parser import DeterministicIntentParser
 from snips_nlu.intent_parser import ProbabilisticIntentParser, ProbabilisticIntentParserAllCls
 from snips_nlu.nlu_engine.nlu_engine import SnipsNLUEngine
 from snips_nlu.nlu_engine.de_nlu_engine import DESnipsNLUEngine
-from snips_nlu.slot_filler import CRFSlotFiller
+from snips_nlu.slot_filler import CRFSlotFiller, CRFSlotFillerWithProbs
 
 BUILTIN_NLU_PROCESSING_UNITS = [
     SnipsNLUEngine,
@@ -13,7 +13,8 @@ BUILTIN_NLU_PROCESSING_UNITS = [
     DeterministicIntentParser,
     LogRegIntentClassifier,
     LogRegIntentClassifierAllCls,
-    CRFSlotFiller
+    CRFSlotFiller,
+    CRFSlotFillerWithProbs
 ]
 
 NLU_PROCESSING_UNITS = {

@@ -8,4 +8,4 @@ from .intent_parser import (DeterministicIntentParserConfig,
                             ProbabilisticIntentParserAllClsConfig,
                             )
 from .nlu_engine import NLUEngineConfig, DENLUEngineConfig
-from .slot_filler import CRFSlotFillerConfig, SlotFillerDataAugmentationConfig
+from .slot_filler import CRFSlotFillerConfig, CRFSlotFillerWithProbsConfig, SlotFillerDataAugmentationConfig

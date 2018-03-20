@@ -157,7 +157,13 @@ class CRFSlotFiller(SlotFiller):
         features = self.compute_features(tokens)
         tags = [_decode_tag(tag) for tag in
                 self.crf_model.predict_single(features)]
-        slots = tags_to_slots(text, tokens, tags, self.config.tagging_scheme,
+        import operator
+        new_tags = []
+        for t in self.crf_model.predict_marginals_single(features):
+            max_entry = max(t.iteritems(), key=operator.itemgetter(1))
+            new_tags.append((_decode_tag(max_entry[0]), max_entry[1]))
+
+        slots = tags_to_slots(text, tokens, new_tags, self.config.tagging_scheme,
                               self.slot_name_mapping)
 
         builtin_slots_names = set(slot_name for (slot_name, entity) in
@@ -246,7 +252,7 @@ class CRFSlotFiller(SlotFiller):
         for (feat, tag), weight in feature_weights:
             print("%s %s: %s" % (feat, tag, weight))
 
-    def _augment_slots(self, text, tokens, tags, builtin_slots_names):
+    def _augment_slots(self, text, tokens, tags, builtin_slots_names, with_probs=False):
         augmented_tags = tags
         scope = [self.slot_name_mapping[slot] for slot in builtin_slots_names]
         builtin_entities = get_builtin_entities(text, self.language, scope)
@@ -288,7 +294,7 @@ class CRFSlotFiller(SlotFiller):
             augmented_tags = best_updated_tags
         slots = tags_to_slots(text, tokens, augmented_tags,
                               self.config.tagging_scheme,
-                              self.slot_name_mapping)
+                              self.slot_name_mapping, with_probs=with_probs)
         return _reconciliate_builtin_slots(text, slots, builtin_entities)
 
     def to_dict(self):
