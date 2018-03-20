@@ -155,20 +155,28 @@ class CRFSlotFiller(SlotFiller):
         if not tokens:
             return []
         features = self.compute_features(tokens)
-        tags = [_decode_tag(tag) for tag in
-                self.crf_model.predict_single(features)]
+        # tags = [_decode_tag(tag) for tag in
+        #         self.crf_model.predict_single(features)]
+
+        proba_tags = [(_decode_tag(tag), prob) for (tag, prob) in
+            [max(dist.items(), key=lambda x:x[1]) for dist in
+                self.crf_model.predict_marginals_single(features)]]
+
+        tags, probas = zip(*proba_tags)
+
         slots = tags_to_slots(text, tokens, tags, self.config.tagging_scheme,
-                              self.slot_name_mapping)
+                              self.slot_name_mapping, probas)
 
         builtin_slots_names = set(slot_name for (slot_name, entity) in
                                   iteritems(self.slot_name_mapping)
                                   if is_builtin_entity(entity))
+
         if not builtin_slots_names:
             return slots
 
         # Replace tags corresponding to builtin entities by outside tags
         tags = _replace_builtin_tags(tags, builtin_slots_names)
-        return self._augment_slots(text, tokens, tags, builtin_slots_names)
+        return self._augment_slots(text, tokens, tags, builtin_slots_names, probas)
 
     def compute_features(self, tokens, drop_out=False):
         """Compute features on the provided tokens
@@ -246,13 +254,13 @@ class CRFSlotFiller(SlotFiller):
         for (feat, tag), weight in feature_weights:
             print("%s %s: %s" % (feat, tag, weight))
 
-    def _augment_slots(self, text, tokens, tags, builtin_slots_names):
+    def _augment_slots(self, text, tokens, tags, builtin_slots_names, probas):
         augmented_tags = tags
         scope = [self.slot_name_mapping[slot] for slot in builtin_slots_names]
         builtin_entities = get_builtin_entities(text, self.language, scope)
 
         builtin_entities = _filter_overlapping_builtins(
-            builtin_entities, tokens, tags, self.config.tagging_scheme)
+            builtin_entities, tokens, tags, self.config.tagging_scheme, probas)
 
         grouped_entities = groupby(builtin_entities,
                                    key=lambda s: s[ENTITY_KIND])
@@ -288,7 +296,7 @@ class CRFSlotFiller(SlotFiller):
             augmented_tags = best_updated_tags
         slots = tags_to_slots(text, tokens, augmented_tags,
                               self.config.tagging_scheme,
-                              self.slot_name_mapping)
+                              self.slot_name_mapping, probas)
         return _reconciliate_builtin_slots(text, slots, builtin_entities)
 
     def to_dict(self):
@@ -359,8 +367,8 @@ def _replace_builtin_tags(tags, builtin_slot_names):
 
 
 def _filter_overlapping_builtins(builtin_entities, tokens, tags,
-                                 tagging_scheme):
-    slots = tags_to_preslots(tokens, tags, tagging_scheme)
+                                 tagging_scheme, probas):
+    slots = tags_to_preslots(tokens, tags, tagging_scheme, probas)
     ents = []
     for ent in builtin_entities:
         if any(ranges_overlap(ent[RES_MATCH_RANGE], s[RES_MATCH_RANGE])

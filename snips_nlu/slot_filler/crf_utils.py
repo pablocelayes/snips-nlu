@@ -2,6 +2,7 @@ from __future__ import unicode_literals
 
 from builtins import range
 from enum import Enum, unique
+from operator import mul
 
 from snips_nlu.constants import TEXT, SLOT_NAME, START, END
 from snips_nlu.result import unresolved_slot
@@ -16,7 +17,10 @@ OUTSIDE = "O"
 RANGE = "range"
 TAGS = "tags"
 TOKENS = "tokens"
+PROB = "prob"
 
+def list_product(list):
+    return reduce(mul, list, 1)
 
 @unique
 class TaggingScheme(Enum):
@@ -109,7 +113,7 @@ def end_of_bilou_slot(tags, i):
     return False
 
 
-def _tags_to_preslots(tags, tokens, is_start_of_slot, is_end_of_slot):
+def _tags_to_preslots(tags, tokens, is_start_of_slot, is_end_of_slot, probas=None):
     slots = []
     current_slot_start = 0
     for i, tag in enumerate(tags):
@@ -121,34 +125,37 @@ def _tags_to_preslots(tags, tokens, is_start_of_slot, is_end_of_slot):
                     START: tokens[current_slot_start].start,
                     END: tokens[i].end
                 },
-                SLOT_NAME: tag_name_to_slot_name(tag)
+                SLOT_NAME: tag_name_to_slot_name(tag),
+                PROB: list_product(probas[current_slot_start:i+1])
             })
             current_slot_start = i
     return slots
 
 
-def tags_to_preslots(tokens, tags, tagging_scheme):
+def tags_to_preslots(tokens, tags, tagging_scheme, probas=None):
     if tagging_scheme == TaggingScheme.IO:
         slots = _tags_to_preslots(tags, tokens, start_of_io_slot,
-                                  end_of_io_slot)
+                                  end_of_io_slot, probas)
     elif tagging_scheme == TaggingScheme.BIO:
         slots = _tags_to_preslots(tags, tokens, start_of_bio_slot,
-                                  end_of_bio_slot)
+                                  end_of_bio_slot, probas)
     elif tagging_scheme == TaggingScheme.BILOU:
         slots = _tags_to_preslots(tags, tokens, start_of_bilou_slot,
-                                  end_of_bilou_slot)
+                                  end_of_bilou_slot, probas)
     else:
         raise ValueError("Unknown tagging scheme %s" % tagging_scheme)
     return slots
 
 
-def tags_to_slots(text, tokens, tags, tagging_scheme, intent_slots_mapping):
-    slots = tags_to_preslots(tokens, tags, tagging_scheme)
+def tags_to_slots(text, tokens, tags, tagging_scheme, intent_slots_mapping, probas=None):
+    slots = tags_to_preslots(tokens, tags, tagging_scheme, probas)
     return [
         unresolved_slot(match_range=slot[RANGE],
                         value=text[slot[RANGE][START]:slot[RANGE][END]],
                         entity=intent_slots_mapping[slot[SLOT_NAME]],
-                        slot_name=slot[SLOT_NAME])
+                        slot_name=slot[SLOT_NAME],
+                        probability=slot[PROB]
+                    )
         for slot in slots
     ]
 
