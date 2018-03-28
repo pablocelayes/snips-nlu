@@ -54,6 +54,18 @@ class ProbabilisticIntentParserConfig(ProcessingUnitConfig):
 
 
 class ProbabilisticIntentParserAllClsConfig(ProbabilisticIntentParserConfig):
+    def __init__(self, intent_classifier_config=None, slot_filler_config=None):
+        if intent_classifier_config is None:
+            from snips_nlu.pipeline.configs import LogRegIntentClassifierAllClsConfig
+            intent_classifier_config = LogRegIntentClassifierAllClsConfig()
+        if slot_filler_config is None:
+            from snips_nlu.pipeline.configs import CRFSlotFillerConfig
+            slot_filler_config = CRFSlotFillerConfig()
+        self.intent_classifier_config = get_processing_unit_config(
+            intent_classifier_config)
+        self.slot_filler_config = get_processing_unit_config(
+            slot_filler_config)
+
     @classproperty
     def unit_name(cls):  # pylint:disable=no-self-argument
         from snips_nlu.intent_parser import ProbabilisticIntentParserAllCls

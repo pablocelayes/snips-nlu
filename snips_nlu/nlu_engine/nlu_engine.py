@@ -119,6 +119,8 @@ class SnipsNLUEngine(ProcessingUnit):
 
         for parser in self.intent_parsers:
             res = parser.parse(text, intents)
+            # import ipdb; ipdb.set_trace()
+
             if is_empty(res):
                 continue
             slots = res[RES_SLOTS]

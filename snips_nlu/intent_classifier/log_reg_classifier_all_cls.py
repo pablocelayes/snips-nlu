@@ -22,8 +22,7 @@ class LogRegIntentClassifierAllCls(LogRegIntentClassifier):
                 the whole list of intents defined in the dataset
 
         Returns:
-            dict or None: The most likely intent along with its probability or
-            *None* if no intent was found
+            list(dict): All intents in decreasing probability
 
         Raises:
             NotTrained: When the intent classifier is not fitted
